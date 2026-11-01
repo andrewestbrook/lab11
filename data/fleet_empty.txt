@@ -1,0 +1,2 @@
+# A fleet file with comments only.
+# There are no ships here, so a game cannot start.

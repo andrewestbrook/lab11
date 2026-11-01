@@ -1,0 +1,12 @@
+# Battleship fleet
+# format: name,length   (length 2 to 5)
+Carrier,5
+Battleship,4
+Cruiser,3
+Submarine,3
+Destroyer,2
+
+# added by a student who wanted a bigger navy
+Tugboat,1
+Dinghy,x
+Flagship
