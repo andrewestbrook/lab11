@@ -59,11 +59,22 @@ pub enum BoardError {
     BadChar { line: usize, ch: char },
 }
 
-// TODO (Task 5): one sentence per variant. Include the line number and the
-// character or counts the variant carries, and use SIZE instead of typing 10.
+// One sentence per variant, with the line number and the character or counts.
 impl fmt::Display for BoardError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TODO: {self:?}")
+        match self {
+            BoardError::WrongRowCount(n) => {
+                write!(f, "found {n} rows, but a board needs exactly {SIZE}")
+            }
+            BoardError::WrongRowWidth { line, found } => write!(
+                f,
+                "line {line} has {found} characters, but a row needs exactly {SIZE}"
+            ),
+            BoardError::BadChar { line, ch } => write!(
+                f,
+                "line {line} contains '{ch}', but only '.' and 'S' are allowed"
+            ),
+        }
     }
 }
 
@@ -190,31 +201,39 @@ pub fn load_fleet(path: &str) -> Result<FleetReport, DataError> {
 }
 
 // Turn the text of a board file into a Board.
-// TODO (Task 5): every failure is WrongRowCount right now. Return
-// WrongRowWidth { line, found } for a row that is not SIZE characters wide, and
-// BadChar { line, ch } for any character other than '.' and 'S'. `line` is the
-// 1-based line number in the file, comments and blank lines included
-// (enumerate() starts at 0). WrongRowCount(n) carries how many rows were found.
+// WrongRowWidth { line, found } for a row that is not SIZE characters wide,
+// BadChar { line, ch } for any character other than '.' and 'S', and
+// WrongRowCount(n) when there are not exactly SIZE rows (n = rows found).
+// `line` is the 1-based file line, comments and blank lines included.
 pub fn parse_board(text: &str) -> Result<Board, BoardError> {
     let mut board = new_board();
     let mut row = 0;
-    for line in text.lines() {
+    for (index, line) in text.lines().enumerate() {
+        let line_number = index + 1;
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        if row >= SIZE {
-            return Err(BoardError::WrongRowCount(row));
-        }
         let chars: Vec<char> = line.chars().collect();
         if chars.len() != SIZE {
-            return Err(BoardError::WrongRowCount(row));
+            return Err(BoardError::WrongRowWidth {
+                line: line_number,
+                found: chars.len(),
+            });
         }
         for col in 0..SIZE {
-            match chars[col] {
-                '.' => board[row][col] = Cell::Water,
-                'S' => board[row][col] = Cell::Ship,
-                _ => return Err(BoardError::WrongRowCount(row)),
+            let cell = match chars[col] {
+                '.' => Cell::Water,
+                'S' => Cell::Ship,
+                ch => {
+                    return Err(BoardError::BadChar {
+                        line: line_number,
+                        ch,
+                    });
+                }
+            };
+            if row < SIZE {
+                board[row][col] = cell;
             }
         }
         row += 1;
