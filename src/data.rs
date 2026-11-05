@@ -32,12 +32,22 @@ pub enum ShipLineError {
     LengthOutOfRange(usize),
 }
 
-// TODO (Task 3): one sentence per variant, written so main can print
-// "data/fleet.txt line 10: <your sentence>". Example: "has length 1, outside 2-5".
-// Use MIN_SHIP and MAX_SHIP in the message instead of typing 2 and 5.
+// One sentence per variant, written so main can print
+// "data/fleet.txt line 10: <sentence>".
 impl fmt::Display for ShipLineError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TODO: {self:?}")
+        match self {
+            ShipLineError::MissingComma => {
+                write!(f, "needs exactly one comma, like Carrier,5")
+            }
+            ShipLineError::EmptyName => write!(f, "has no ship name before the comma"),
+            ShipLineError::BadLength(text) => {
+                write!(f, "has length \"{text}\", which is not a whole number")
+            }
+            ShipLineError::LengthOutOfRange(n) => {
+                write!(f, "has length {n}, outside {MIN_SHIP}-{MAX_SHIP}")
+            }
+        }
     }
 }
 
@@ -129,9 +139,8 @@ pub fn sort_scores_desc(records: &mut Vec<ScoreRecord>) {
 }
 
 // One line of fleet.txt looks like:  Carrier,5
-// TODO (Task 3): every failure is MissingComma right now. Return the variant
-// that matches the problem: MissingComma (not exactly one comma), EmptyName,
-// BadLength(the text that did not parse), LengthOutOfRange(the number).
+// MissingComma (not exactly one comma), EmptyName, BadLength(the text that did
+// not parse), or LengthOutOfRange(the number).
 pub fn parse_ship_line(line: &str) -> Result<ShipSpec, ShipLineError> {
     let parts: Vec<&str> = line.trim().split(',').collect();
     if parts.len() != 2 {
@@ -139,14 +148,15 @@ pub fn parse_ship_line(line: &str) -> Result<ShipSpec, ShipLineError> {
     }
     let name = parts[0].trim();
     if name.is_empty() {
-        return Err(ShipLineError::MissingComma);
+        return Err(ShipLineError::EmptyName);
     }
-    let length = match parts[1].trim().parse::<usize>() {
+    let length_text = parts[1].trim();
+    let length = match length_text.parse::<usize>() {
         Ok(n) => n,
-        Err(_) => return Err(ShipLineError::MissingComma),
+        Err(_) => return Err(ShipLineError::BadLength(length_text.to_string())),
     };
     if length < MIN_SHIP || length > MAX_SHIP {
-        return Err(ShipLineError::MissingComma);
+        return Err(ShipLineError::LengthOutOfRange(length));
     }
     Ok(ShipSpec {
         name: name.to_string(),
