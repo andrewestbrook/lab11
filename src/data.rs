@@ -271,16 +271,9 @@ pub fn load_scores(path: &str) -> Result<Vec<ScoreRecord>, DataError> {
 
 // Append "name,score" as one line, creating the file if needed.
 // Commas in the name are replaced with spaces so the line stays parseable.
-// TODO (Task 8): this works, but it is long. Rewrite it with `?` on the open and
-// on the writeln!, with no match.
 pub fn append_score(path: &str, record: &ScoreRecord) -> Result<(), DataError> {
-    let mut file = match OpenOptions::new().create(true).append(true).open(path) {
-        Ok(file) => file,
-        Err(e) => return Err(DataError::Io(e)),
-    };
+    let mut file = OpenOptions::new().create(true).append(true).open(path)?;
     let name = record.name.replace(',', " ");
-    match writeln!(file, "{},{}", name, record.score) {
-        Ok(()) => Ok(()),
-        Err(e) => Err(DataError::Io(e)),
-    }
+    writeln!(file, "{},{}", name, record.score)?;
+    Ok(())
 }
