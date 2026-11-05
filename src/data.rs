@@ -252,13 +252,13 @@ pub fn load_board(path: &str) -> Result<Board, DataError> {
 }
 
 // A missing file is normal on the first run: Ok with an empty Vec.
-// TODO (Task 7): right now every read error is treated as "missing". Return
-// Ok(empty) only when e.kind() == io::ErrorKind::NotFound. Any other error is
-// Err(DataError::Io(e)). Keep skipping score lines that parse_score rejects.
+// Any other read error is Err(DataError::Io(e)), so `?` cannot be used here.
+// Lines that parse_score rejects are skipped.
 pub fn load_scores(path: &str) -> Result<Vec<ScoreRecord>, DataError> {
     let text = match fs::read_to_string(path) {
         Ok(text) => text,
-        Err(_) => return Ok(Vec::new()),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(DataError::Io(e)),
     };
     let mut records = Vec::new();
     for line in text.lines() {
