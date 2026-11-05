@@ -43,7 +43,11 @@ pub enum CoordError {
 // Study DataError in data.rs: it is a finished example of this impl.
 impl fmt::Display for CoordError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "TODO: {self:?}")
+        match self {
+            CoordError::BadFormat => write!(f, "type a column letter and a row number, like B7"),
+            CoordError::ColumnOutOfRange(c) => write!(f, "column {c} is off the board (A-J)"),
+            CoordError::RowOutOfRange(n) => write!(f, "row {n} is off the board (1-10)"),
+        }
     }
 }
 
@@ -187,13 +191,17 @@ pub fn parse_coord(text: &str) -> Result<(usize, usize), CoordError> {
     if !first.is_ascii_alphabetic() {
         return Err(CoordError::BadFormat);
     }
-    let row_number = match text[1..].trim().parse::<usize>() {
+    let row_number = match text[first.len_utf8()..].trim().parse::<usize>() {
         Ok(n) => n,
         Err(_) => return Err(CoordError::BadFormat),
     };
-    let col = (first.to_ascii_uppercase() as usize) - ('A' as usize);
-    if col >= SIZE || row_number < 1 || row_number > SIZE {
-        return Err(CoordError::BadFormat);
+    let letter = first.to_ascii_uppercase();
+    let col = (letter as usize) - ('A' as usize);
+    if col >= SIZE {
+        return Err(CoordError::ColumnOutOfRange(letter));
+    }
+    if row_number < 1 || row_number > SIZE {
+        return Err(CoordError::RowOutOfRange(row_number));
     }
     Ok((row_number - 1, col))
 }
