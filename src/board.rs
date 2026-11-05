@@ -36,11 +36,7 @@ pub enum CoordError {
     RowOutOfRange(usize),
 }
 
-// TODO (Task 1): write one sentence per variant. Do not print the debug form.
-//   BadFormat            type a column letter and a row number, like B7
-//   ColumnOutOfRange('K') column K is off the board (A-J)
-//   RowOutOfRange(11)     row 11 is off the board (1-10)
-// Study DataError in data.rs: it is a finished example of this impl.
+// One sentence per variant, never the debug form.
 impl fmt::Display for CoordError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -72,17 +68,24 @@ impl fmt::Display for FleetError {
     }
 }
 
-// True if a ship of this length starting at (row, col) stays on the board
-// and covers only water. TODO (Task 2): fold this into `place` and delete it.
-fn can_place(board: &Board, row: usize, col: usize, length: usize, horizontal: bool) -> bool {
+// Place a ship starting at (row, col).
+// Checks the edge first (OutOfBounds), then overlap (Overlap), and only then
+// changes the board, so a failed call leaves the board untouched.
+pub fn place(
+    board: &mut Board,
+    row: usize,
+    col: usize,
+    length: usize,
+    horizontal: bool,
+) -> Result<(), PlaceError> {
     if row >= SIZE || col >= SIZE {
-        return false;
+        return Err(PlaceError::OutOfBounds);
     }
     if horizontal && col + length > SIZE {
-        return false;
+        return Err(PlaceError::OutOfBounds);
     }
     if !horizontal && row + length > SIZE {
-        return false;
+        return Err(PlaceError::OutOfBounds);
     }
     for i in 0..length {
         let (r, c) = if horizontal {
@@ -91,26 +94,8 @@ fn can_place(board: &Board, row: usize, col: usize, length: usize, horizontal: b
             (row + i, col)
         };
         if board[r][c] != Cell::Water {
-            return false;
+            return Err(PlaceError::Overlap);
         }
-    }
-    true
-}
-
-// Place a ship starting at (row, col).
-// TODO (Task 2): check the edge first and return Err(PlaceError::OutOfBounds);
-// then check for overlap and return Err(PlaceError::Overlap); only then change
-// the board. A failed call must leave the board untouched.
-// Right now every failure is reported as OutOfBounds.
-pub fn place(
-    board: &mut Board,
-    row: usize,
-    col: usize,
-    length: usize,
-    horizontal: bool,
-) -> Result<(), PlaceError> {
-    if !can_place(board, row, col, length, horizontal) {
-        return Err(PlaceError::OutOfBounds);
     }
     for i in 0..length {
         if horizontal {
@@ -178,10 +163,9 @@ pub fn all_sunk(board: &Board) -> bool {
 }
 
 // "B7" -> Ok((6, 1)): letter is the column, number is the row (1-based).
-// TODO (Task 1): every failure is BadFormat right now. Return
-// ColumnOutOfRange(letter) when the column is past J (use the uppercase letter),
-// and RowOutOfRange(number) when the row is 0 or past 10. Check the column first.
-// Use a match on parse::<usize>(), not map_err.
+// BadFormat for text that is not a letter then a number, ColumnOutOfRange for a
+// column past J (uppercase letter), RowOutOfRange for a row of 0 or past 10.
+// The column is checked before the row.
 pub fn parse_coord(text: &str) -> Result<(usize, usize), CoordError> {
     let text = text.trim();
     let first = match text.chars().next() {
